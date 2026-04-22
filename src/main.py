@@ -67,14 +67,15 @@ def run() -> int:
              report.semaforo, len(report.insights))
 
     body = format_report(report)
-    log.info("Sending WhatsApp to %s...", settings.whatsapp_to)
-    send_whatsapp(
-        token=settings.whatsapp_token,
-        phone_number_id=settings.whatsapp_phone_number_id,
-        to=settings.whatsapp_to,
+    log.info("Sending WhatsApp to %s via Twilio...", settings.twilio_whatsapp_to)
+    sid = send_whatsapp(
+        account_sid=settings.twilio_account_sid,
+        auth_token=settings.twilio_auth_token,
+        from_=settings.twilio_whatsapp_from,
+        to=settings.twilio_whatsapp_to,
         body=body,
     )
-    log.info("Done.")
+    log.info("Done. Twilio message SID=%s", sid)
     return 0
 
 

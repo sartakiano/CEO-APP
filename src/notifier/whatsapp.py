@@ -1,5 +1,5 @@
 from __future__ import annotations
-import httpx
+from twilio.rest import Client
 from ..models import CEOReport
 
 
@@ -11,11 +11,17 @@ SEV = {
     "informativo": "[INFO]",
 }
 
+# WhatsApp permite hasta 4096 chars en el body. Dejamos margen.
+MAX_BODY = 3900
+
 
 def format_report(report: CEOReport) -> str:
-    """Formato compacto para WhatsApp (1500 chars aprox). Sin markdown pesado."""
+    """Formato compacto para WhatsApp. Sin markdown pesado."""
     lines: list[str] = []
-    lines.append(f"*Brief CEO {report.brief_date.isoformat()}* — {EMOJI.get(report.semaforo, report.semaforo).upper()}")
+    lines.append(
+        f"*Brief CEO {report.brief_date.isoformat()}* - "
+        f"{EMOJI.get(report.semaforo, report.semaforo).upper()}"
+    )
     lines.append("")
     lines.append(report.resumen_ejecutivo.strip())
 
@@ -38,26 +44,17 @@ def format_report(report: CEOReport) -> str:
                 lines.append(f"   Accion: {ins.accion_inmediata}")
 
     text = "\n".join(lines)
-    return text[:3900]  # limite del body de WhatsApp
+    return text[:MAX_BODY]
 
 
 def send_whatsapp(
-    token: str,
-    phone_number_id: str,
+    account_sid: str,
+    auth_token: str,
+    from_: str,
     to: str,
     body: str,
-) -> dict:
-    url = f"https://graph.facebook.com/v20.0/{phone_number_id}/messages"
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": to,
-        "type": "text",
-        "text": {"preview_url": False, "body": body},
-    }
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-    }
-    r = httpx.post(url, json=payload, headers=headers, timeout=30)
-    r.raise_for_status()
-    return r.json()
+) -> str:
+    """Envia mensaje via Twilio WhatsApp. Devuelve el SID del mensaje."""
+    client = Client(account_sid, auth_token)
+    msg = client.messages.create(from_=from_, to=to, body=body)
+    return msg.sid
