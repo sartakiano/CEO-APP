@@ -1,0 +1,60 @@
+name: Daily CEO Brief
+
+on:
+  schedule:
+    # 05:00 UTC = 23:00 America/Mexico_City (CST, UTC-6)
+    # En horario de verano de MX ajustar a '0 4 * * *'
+    - cron: "0 5 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: daily-ceo-brief
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Run CEO brief
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL || 'claude-opus-4-7' }}
+          ERPCOM_BASE_URL: ${{ vars.ERPCOM_BASE_URL }}
+          ERPCOM_API_KEY: ${{ secrets.ERPCOM_API_KEY }}
+          ERPOPS_BASE_URL: ${{ vars.ERPOPS_BASE_URL }}
+          ERPOPS_API_KEY: ${{ secrets.ERPOPS_API_KEY }}
+          WHATSAPP_TOKEN: ${{ secrets.WHATSAPP_TOKEN }}
+          WHATSAPP_PHONE_NUMBER_ID: ${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}
+          WHATSAPP_TO: ${{ secrets.WHATSAPP_TO }}
+          TIMEZONE: ${{ vars.TIMEZONE || 'America/Mexico_City' }}
+          HISTORY_DIR: data/history
+        run: python -m src.main
+
+      - name: Commit history
+        if: always()
+        run: |
+          git config user.name "ceo-app-bot"
+          git config user.email "ceo-app-bot@users.noreply.github.com"
+          if [ -n "$(git status --porcelain data/history)" ]; then
+            git add data/history
+            git commit -m "chore: daily brief $(date -u +%F)"
+            git push
+          else
+            echo "No history changes to commit"
+          fi
