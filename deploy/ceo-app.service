@@ -1,0 +1,17 @@
+[Unit]
+Description=CEO Daily Brief (pulls ERP KPIs, runs Claude analysis, sends WhatsApp)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ceoapp
+WorkingDirectory=/opt/ceo-app
+EnvironmentFile=/opt/ceo-app/.env
+ExecStart=/opt/ceo-app/.venv/bin/python -m src.main
+StandardOutput=append:/var/log/ceo-app.log
+StandardError=append:/var/log/ceo-app.log
+# En caso de falla transitoria reintenta una vez
+Restart=on-failure
+RestartSec=5min
+StartLimitBurst=2

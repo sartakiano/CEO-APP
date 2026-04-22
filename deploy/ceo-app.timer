@@ -1,0 +1,11 @@
+[Unit]
+Description=Dispara el CEO Daily Brief cada dia a las 23:00 hora local
+
+[Timer]
+# Hora local del servidor. Asegurate de tener timedatectl set-timezone America/Mexico_City
+OnCalendar=*-*-* 23:00:00
+AccuracySec=1min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
